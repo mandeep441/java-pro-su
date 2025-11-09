@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Solver - Backtracking Algorithm</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .sudoku-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 0;
+            margin: 0 auto 30px;
+            width: 100%;
+            max-width: 450px;
+            border: 3px solid #333;
+            background: #333;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            border: 1px solid #999;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .cell input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            background: transparent;
+            outline: none;
+        }
+
+        .cell.original {
+            background: #e8f4f8;
+            color: #333;
+        }
+
+        .cell.solved {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .cell:hover:not(.original) {
+            background: #f0f0f0;
+        }
+
+        .cell:nth-child(3n):not(:nth-child(9n)) {
+            border-right: 3px solid #333;
+        }
+
+        .cell:nth-child(n+19):nth-child(-n+27),
+        .cell:nth-child(n+46):nth-child(-n+54) {
+            border-bottom: 3px solid #333;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 120px;
+        }
+
+        .btn-solve {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-solve:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-clear {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .btn-example {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-example:hover {
+            background: #27ae60;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
+        }
+
+        .btn-random {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-random:hover {
+            background: #e67e22;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+        }
+
+        .difficulty-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .difficulty-btn {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            min-width: 100px;
+        }
+
+        .difficulty-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .difficulty-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+            display: block;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
+            display: block;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .info-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.5em;
+            }
+            
+            .cell input {
+                font-size: 1em;
+            }
+            
+            button {
+                min-width: 100px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧩 Sudoku Solver</h1>
+        <p class="subtitle">Using Backtracking Algorithm</p>
+
+        <div class="difficulty-selector">
+            <button class="difficulty-btn active" onclick="setDifficulty('easy')">Easy</button>
+            <button class="difficulty-btn" onclick="setDifficulty('medium')">Medium</button>
+            <button class="difficulty-btn" onclick="setDifficulty('hard')">Hard</button>
+            <button class="difficulty-btn" onclick="setDifficulty('expert')">Expert</button>
+        </div>
+
+        <div class="sudoku-grid" id="sudoku-grid"></div>
+
+        <div class="controls">
+            <button class="btn-solve" onclick="solveSudoku()">Solve Puzzle</button>
+            <button class="btn-clear" onclick="clearBoard()">Clear Board</button>
+            <button class="btn-random" onclick="generatePuzzle()">Generate Puzzle</button>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="puzzles-generated">0</div>
+                <div class="stat-label">Puzzles Generated</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="puzzles-solved">0</div>
+                <div class="stat-label">Puzzles Solved</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="current-difficulty">Easy</div>
+                <div class="stat-label">Current Level</div>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h3>How to Use:</h3>
+            <p>• A puzzle is automatically generated when you load the page</p>
+            <p>• Select difficulty level (Easy, Medium, Hard, or Expert)</p>
+            <p>• Click "Generate Puzzle" to create a new random puzzle</p>
+            <p>• Enter numbers 1-9 manually to solve it yourself</p>
+            <p>• Click "Solve Puzzle" to see the backtracking algorithm solve it</p>
+            <p>• Blue cells are given numbers, green cells are solved by the algorithm</p>
+        </div>
+    </div>
+<script>
+let board = Array(9).fill().map(() => Array(9).fill(0));
+let originalBoard = Array(9).fill().map(() => Array(9).fill(0));
+let currentDifficulty = 'easy';
+let puzzlesGenerated = 0;
+let puzzlesSolved = 0;
+
+const difficultyLevels = {
+    easy: 35,
+    medium: 45,
+    hard: 52,
+    expert: 58
+};
+
+function setDifficulty(level, event) {
+    currentDifficulty = level;
+    document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    updateStats();
+    showStatus(`Difficulty set to ${level.charAt(0).toUpperCase() + level.slice(1)}. Generating new puzzle...`, 'info');
+    setTimeout(() => generatePuzzle(), 500);
+}
+
+function updateStats() {
+    document.getElementById('puzzles-generated').textContent = puzzlesGenerated;
+    document.getElementById('puzzles-solved').textContent = puzzlesSolved;
+    document.getElementById('current-difficulty').textContent = 
+        currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1);
+}
+
+function initGrid() {
+    const grid = document.getElementById('sudoku-grid');
+    grid.innerHTML = '';
+    for (let i = 0; i < 81; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.maxLength = 1;
+        input.id = `cell-${i}`;
+        input.addEventListener('input', e => {
+            const value = e.target.value;
+            if (value && (value < '1' || value > '9')) e.target.value = '';
+            updateBoard();
+        });
+        cell.appendChild(input);
+        grid.appendChild(cell);
+    }
+}
+
+function updateBoard() {
+    for (let i = 0; i < 9; i++) {
+        for (let j = 0; j < 9; j++) {
+            const input = document.getElementById(`cell-${i * 9 + j}`);
+            board[i][j] = parseInt(input.value) || 0;
+        }
+    }
+}
+
+function displayBoard() {
+    for (let i = 0; i < 9; i++) {
+        for (let j = 0; j < 9; j++) {
+            const input = document.getElementById(`cell-${i * 9 + j}`);
+            const cell = input.parentElement;
+            input.value = board[i][j] === 0 ? '' : board[i][j];
+            if (originalBoard[i][j] !== 0) {
+                cell.classList.add('original');
+                cell.classList.remove('solved');
+                input.disabled = true;
+            } else if (board[i][j] !== 0) {
+                cell.classList.add('solved');
+                cell.classList.remove('original');
+                input.disabled = false;
+            } else {
+                cell.classList.remove('original', 'solved');
+                input.disabled = false;
+            }
+        }
+    }
+}
+
+function isValid(board, num, row, col) {
+    for (let j = 0; j < 9; j++) if (board[row][j] === num && col !== j) return false;
+    for (let i = 0; i < 9; i++) if (board[i][col] === num && row !== i) return false;
+    const boxRow = Math.floor(row / 3) * 3;
+    const boxCol = Math.floor(col / 3) * 3;
+    for (let i = boxRow; i < boxRow + 3; i++)
+        for (let j = boxCol; j < boxCol + 3; j++)
+            if (board[i][j] === num && (i !== row || j !== col)) return false;
+    return true;
+}
+
+function findEmpty(board) {
+    for (let i = 0; i < 9; i++)
+        for (let j = 0; j < 9; j++)
+            if (board[i][j] === 0) return [i, j];
+    return null;
+}
+
+function solve(board) {
+    const empty = findEmpty(board);
+    if (!empty) return true;
+    const [row, col] = empty;
+    for (let num = 1; num <= 9; num++) {
+        if (isValid(board, num, row, col)) {
+            board[row][col] = num;
+            if (solve(board)) return true;
+            board[row][col] = 0;
+        }
+    }
+    return false;
+}
+
+function solveSudoku() {
+    updateBoard();
+    originalBoard = board.map(row => [...row]);
+    const hasNumbers = board.some(row => row.some(cell => cell !== 0));
+    if (!hasNumbers) {
+        showStatus('Please enter some numbers first or load an example!', 'error');
+        return;
+    }
+    showStatus('Solving...', 'info');
+    setTimeout(() => {
+        if (solve(board)) {
+            displayBoard();
+            puzzlesSolved++;
+            updateStats();
+            showStatus('Puzzle solved successfully! 🎉', 'success');
+        } else showStatus('No solution exists for this puzzle.', 'error');
+    }, 100);
+}
+
+function clearBoard() {
+    board = Array(9).fill().map(() => Array(9).fill(0));
+    originalBoard = Array(9).fill().map(() => Array(9).fill(0));
+    displayBoard();
+    hideStatus();
+}
+
+function fillDiagonalBoxes() {
+    for (let box = 0; box < 3; box++) fillBox(box * 3, box * 3);
+}
+
+function fillBox(row, col) {
+    const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    for (let i = nums.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [nums[i], nums[j]] = [nums[j], nums[i]];
+    }
+    let idx = 0;
+    for (let i = 0; i < 3; i++)
+        for (let j = 0; j < 3; j++)
+            board[row + i][col + j] = nums[idx++];
+}
+
+function removeCells(count) {
+    let removed = 0, tries = 0, attempts = count * 3;
+    while (removed < count && tries < attempts) {
+        const row = Math.floor(Math.random() * 9);
+        const col = Math.floor(Math.random() * 9);
+        if (board[row][col] !== 0) {
+            const backup = board[row][col];
+            board[row][col] = 0;
+            const copy = board.map(r => [...r]);
+            if (hasUniqueSolution(copy)) removed++;
+            else board[row][col] = backup;
+        }
+        tries++;
+    }
+}
+
+function hasUniqueSolution(board) {
+    let solutions = 0;
+    function countSolutions(board) {
+        if (solutions > 1) return;
+        const empty = findEmpty(board);
+        if (!empty) { solutions++; return; }
+        const [row, col] = empty;
+        for (let num = 1; num <= 9; num++) {
+            if (isValid(board, num, row, col)) {
+                board[row][col] = num;
+                countSolutions(board);
+                board[row][col] = 0;
+                if (solutions > 1) return;
+            }
+        }
+    }
+    countSolutions(board);
+    return solutions === 1;
+}
+
+function generatePuzzle() {
+    board = Array(9).fill().map(() => Array(9).fill(0));
+    fillDiagonalBoxes();
+    solve(board);
+    const solved = board.map(r => [...r]);
+    removeCells(difficultyLevels[currentDifficulty]);
+    originalBoard = board.map(r => [...r]);
+    displayBoard();
+    puzzlesGenerated++;
+    updateStats();
+    showStatus(`${currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1)} puzzle generated!`, 'success');
+}
+
+function showStatus(message, type) {
+    const status = document.getElementById('status');
+    status.textContent = message;
+    status.className = `status ${type}`;
+}
+
+function hideStatus() {
+    const status = document.getElementById('status');
+    status.className = 'status';
+}
+
+initGrid();
+generatePuzzle();
+</script>
+
+</body>
+</html>
